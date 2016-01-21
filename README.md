@@ -83,3 +83,12 @@ Each created endpoint uses the following signature:
  */
 function (properties, parameters, data)
 ```
+
+#### Included CRUD services
+There are three CRUD services included:
+
+* UserService
+* CategoryService
+* ObjectService
+
+These interact with the Craod API out of the box - however, they require the configuration setting **api.url** to be set in order to be used.
