@@ -1,0 +1,31 @@
+{
+	"name": "angular-utilities",
+	"version": "1.0.0",
+	"main": [
+		"dist/angular-utilities.js",
+		"dist/angular-utilities.min.js"
+	],
+	"ignore": [
+		"src",
+		".gitignore",
+		"tasks",
+		"gruntfile.js",
+		"package.json"
+	],
+	"keywords": [
+		"angular",
+		"settings"
+	],
+	"authors": [
+		{"name": "Andrés Angulo", "email": "andres@angulo.org"}
+	],
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/craod/angular-utilities.git"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"angular": "1.5",
+		"angular-cookies": "1.5"
+	}
+}
