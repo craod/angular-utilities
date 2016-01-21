@@ -3,7 +3,7 @@
 
 	module.exports = function (grunt) {
 		grunt.loadTasks('tasks');
-		grunt.registerTask('compile', ['concat', 'uglify']);
+		grunt.registerTask('compile', ['ngtemplates', 'concat', 'uglify', 'compass', 'cssmin', 'clean']);
 	};
 
 })(module);

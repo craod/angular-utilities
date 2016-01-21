@@ -8,6 +8,88 @@
 	'use strict';
 
 	/**
+	 * @ngdoc directive
+	 * @name ObjectImage
+	 * @description
+	 * Load an object image in the given size
+	 */
+	function ObjectImage (Resource) {
+		return {
+			restrict: 'E',
+			scope: {
+				object: '=',
+				width: '@?',
+				height: '@?',
+				mode: '@?',
+				class: '@?',
+				type: '@?'
+			},
+			templateUrl: 'templates/objectimage.html',
+			link: function (scope) {
+				scope.resource = Resource;
+			}
+		}
+	}
+
+	ObjectImage.$inject = [
+		'Resource'
+	];
+
+	angular
+		.module('angular-utilities')
+		.directive('objectImage', ObjectImage);
+})();
+(function () {
+	'use strict';
+
+	/**
+	 * @ngdoc directive
+	 * @name RenderObject
+	 * @description
+	 * Render an object using the given translation key or showing the given property - if the object is presented as a guid, load the object first and then
+	 * render it
+	 */
+	function RenderObject ($injector) {
+		return {
+			restrict: 'A',
+			scope: {
+				object: '=',
+				format: '@?',
+				property: '@?',
+				type: '@renderObject'
+			},
+			template: '<i data-ng-if="loading" class="fa fa-refresh fa-spin"></i> {{loading ? "" : (format ? (format | translate:entity) : entity[property])}}',
+			link: function (scope) {
+				if (scope.object && typeof scope.object === 'object') {
+					scope.entity = scope.object;
+				} else {
+					scope.loading = true;
+					var serviceName = scope.type[0].toUpperCase() + scope.type.substring(1) + 'Service',
+						service = $injector.get(serviceName),
+						promise = service.get({}, {guid: scope.object});
+					promise.then(function (entity) {
+						scope.entity = entity;
+					});
+					promise.finally(function () {
+						delete scope.loading;
+					})
+				}
+			}
+		}
+	}
+
+	RenderObject.$inject = [
+		'$injector'
+	];
+
+	angular
+		.module('angular-utilities')
+		.directive('renderObject', RenderObject);
+})();
+(function () {
+	'use strict';
+
+	/**
 	 * @ngdoc factory
 	 * @name CrudServiceFactory
 	 * @description
@@ -196,7 +278,7 @@
 
 		/**
 		 * @ngdoc service
-		 * @name Craod.Admin:AbstractCrudService
+		 * @name AbstractCrudService
 		 * @param {Object} endpoints
 		 * @description
 		 * CRUD service that contains the given endpoints. Look at the addEndpoint function to understand the parameters expected for each endpoint. The
@@ -542,7 +624,7 @@
 
 	/**
 	 * @ngdoc service
-	 * @name Craod.Admin:ObjectService
+	 * @name ObjectService
 	 * @description
 	 * Service that provides CRUD functions for handling Craod objects
 	 */
@@ -901,7 +983,7 @@
 
 	/**
 	 * @ngdoc service
-	 * @name Craod.Admin:UserService
+	 * @name UserService
 	 * @description
 	 * Service that provides CRUD functions for handling Craod users
 	 */
@@ -1329,3 +1411,17 @@
 		.module('angular-utilities')
 		.service('Resource', Resource);
 })();
+angular.module('angular-utilities').run(['$templateCache', function($templateCache) {
+  'use strict';
+
+  $templateCache.put('templates/objectimage.html',
+    "<img data-ng-src=\"{{type == 'user' ? resource.getProfilePictureUrl(object, width, height) : resource.getImageUrl(object, width, height)}}\"\r" +
+    "\n" +
+    "     data-ng-attr-height=\"{{height}}\"\r" +
+    "\n" +
+    "     data-ng-attr-width=\"{{width}}\"\r" +
+    "\n" +
+    "     class=\"{{type == 'user' ? 'profile-picture' : 'object-image'}} {{class}}\" />"
+  );
+
+}]);

@@ -9,8 +9,8 @@ angular-utilities only requires AngularJS to work.
 
 <a name="installation"></a>
 ## Installation
-Simply include the files provided in the dist folder: angular-utilities.js or angular-utilities.min.js. Add the *angular-utilities*
-module to your application for tools to be available.
+Simply include the files provided in the dist folder: angular-utilities.js and angular-utilities.css or angular-utilities.min.js and angular-utilities.min.css.
+Add the *angular-utilities* module to your application for tools to be available.
 
 <a name="usage"></a>
 ## Usage
@@ -92,3 +92,21 @@ There are three CRUD services included:
 * ObjectService
 
 These interact with the Craod API out of the box - however, they require the configuration setting **api.url** to be set in order to be used.
+
+## Directives
+### render-object
+Use render-object to render an object (either an object or a loadable guid), using either a translation key or a property:
+
+```
+<p data-render-object="user" data-property="firstName" data-object="aUserGuid"></p>
+
+<td data-render-object="category" data-property="name" data-object="{name: 'Switzerland'}"></td>
+```
+
+### object-image
+Use the object-image directive to render an object image in the given size:
+
+```
+For a user: <object-image object="theUser" width="200" height="200" type="user"></object-image>
+For an object: <object-image object="theObject" width="1000" height="600"></object-image>
+```

@@ -190,7 +190,7 @@
 
 		/**
 		 * @ngdoc service
-		 * @name Craod.Admin:AbstractCrudService
+		 * @name AbstractCrudService
 		 * @param {Object} endpoints
 		 * @description
 		 * CRUD service that contains the given endpoints. Look at the addEndpoint function to understand the parameters expected for each endpoint. The

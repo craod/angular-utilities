@@ -3,7 +3,7 @@
 
 	/**
 	 * @ngdoc service
-	 * @name Craod.Admin:UserService
+	 * @name UserService
 	 * @description
 	 * Service that provides CRUD functions for handling Craod users
 	 */
