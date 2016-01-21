@@ -31,3 +31,6 @@ Settings.load().then(function () {
 	alert('This is something that was loaded: ' + Settings.get('Configuration.option.path', defaultValue));
 });
 ```
+
+### Resource
+Use the resource utility to be able to manipulate Craod resources. Ensure the Settings are loaded first, then you have access to the Resource methods.
