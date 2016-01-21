@@ -1,6 +1,6 @@
 {
 	"name": "angular-utilities",
-	"version": "1.0.0",
+	"version": "0.5.0",
 	"main": [
 		"dist/angular-utilities.js",
 		"dist/angular-utilities.min.js"
