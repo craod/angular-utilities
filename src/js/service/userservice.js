@@ -22,7 +22,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			count: {
 				url: Settings.get('api.url') + 'user/count',
@@ -40,7 +40,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			getAll: {
 				url: Settings.get('api.url') + 'user',
@@ -60,7 +60,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			get: {
 				url: Settings.get('api.url') + 'user/:guid',
@@ -77,7 +77,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			create: {
 				url: Settings.get('api.url') + 'user',
@@ -94,7 +94,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			update: {
 				url: Settings.get('api.url') + 'user/:guid',
@@ -111,7 +111,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			delete: {
 				url: Settings.get('api.url') + 'user/:guid',
@@ -128,7 +128,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			checkEmailAvailability: {
 				url: Settings.get('api.url') + 'user/available/:email',
@@ -145,7 +145,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			changePassword: {
 				url: Settings.get('api.url') + 'user/password/change/:guid',
@@ -162,7 +162,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			resetPassword: {
 				url: Settings.get('api.url') + 'user/password/reset/:guid'
@@ -178,7 +178,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			activate: {
 				url: Settings.get('api.url') + 'user/activate/:guid'
@@ -194,7 +194,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			deactivate: {
 				url: Settings.get('api.url') + 'user/deactivate/:guid'
@@ -210,7 +210,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			logOut: {
 				url: Settings.get('api.url') + 'user/logout/:guid'
@@ -226,7 +226,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			search: {
 				url: Settings.get('api.url') + 'user/search',
@@ -246,7 +246,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			uploadProfilePicture: {
 				url: Settings.get('api.url') + 'user/image/:guid',
@@ -263,7 +263,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			deleteProfilePicture: {
 				url: Settings.get('api.url') + 'user/image/:guid',
@@ -286,7 +286,7 @@
 			return (roles & role) === role;
 		};
 
-		angular.extend(self, new CrudService(endpoints));
+		angular.extend(self.prototype, new CrudService(endpoints).prototype);
 	}
 
 	UserService.$inject = [

@@ -22,7 +22,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			count: {
 				url: Settings.get('api.url') + 'object/count',
@@ -40,7 +40,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			getAll: {
 				url: Settings.get('api.url') + 'object',
@@ -61,7 +61,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			getObjectsInCategory: {
 				url: Settings.get('api.url') + 'object/category/:guid',
@@ -81,7 +81,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			get: {
 				url: Settings.get('api.url') + 'object/:guid',
@@ -98,7 +98,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			create: {
 				url: Settings.get('api.url') + 'object',
@@ -115,7 +115,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			update: {
 				url: Settings.get('api.url') + 'object/:guid',
@@ -132,7 +132,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			delete: {
 				url: Settings.get('api.url') + 'object/:guid',
@@ -149,7 +149,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			activate: {
 				url: Settings.get('api.url') + 'object/activate/:guid'
@@ -165,7 +165,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			deactivate: {
 				url: Settings.get('api.url') + 'object/deactivate/:guid'
@@ -181,7 +181,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			search: {
 				url: Settings.get('api.url') + 'object/search',
@@ -191,8 +191,8 @@
 				sorting: true
 			}
 		};
-
-		angular.extend(self, new CrudService(endpoints));
+		
+		angular.extend(self.prototype, new CrudService(endpoints).prototype);
 	}
 
 	ObjectService.$inject = [

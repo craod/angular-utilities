@@ -22,7 +22,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			count: {
 				url: Settings.get('api.url') + 'category/count',
@@ -40,7 +40,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			getAll: {
 				url: Settings.get('api.url') + 'category',
@@ -61,7 +61,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			getParents: {
 				url: Settings.get('api.url') + 'category/parents/:guid',
@@ -82,7 +82,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			getChildren: {
 				url: Settings.get('api.url') + 'category/children/:guid',
@@ -103,7 +103,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			getCategoriesInObject: {
 				url: Settings.get('api.url') + 'category/object/:guid',
@@ -123,7 +123,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			get: {
 				url: Settings.get('api.url') + 'category/:guid',
@@ -140,7 +140,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			create: {
 				url: Settings.get('api.url') + 'category',
@@ -157,7 +157,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			update: {
 				url: Settings.get('api.url') + 'category/:guid',
@@ -174,7 +174,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			delete: {
 				url: Settings.get('api.url') + 'category/:guid',
@@ -191,7 +191,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			activate: {
 				url: Settings.get('api.url') + 'category/activate/:guid'
@@ -207,7 +207,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			deactivate: {
 				url: Settings.get('api.url') + 'category/deactivate/:guid'
@@ -223,7 +223,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			search: {
 				url: Settings.get('api.url') + 'category/search',
@@ -243,7 +243,7 @@
 			 * @param {Object} properties
 			 * @param {Object} parameters
 			 * @param {Object} data
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			autocomplete: {
 				url: Settings.get('api.url') + 'category/autocomplete/:query',
@@ -254,7 +254,7 @@
 			}
 		};
 
-		angular.extend(self, new CrudService(endpoints));
+		angular.extend(self.prototype, new CrudService(endpoints).prototype);
 	}
 
 	CategoryService.$inject = [

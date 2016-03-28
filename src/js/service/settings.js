@@ -70,7 +70,7 @@
 			 * @description
 			 * Load the settings from the endpoint specified in the provider
 			 *
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			service.load = function () {
 				var promise = $http.get(provider.endpoint);

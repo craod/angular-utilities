@@ -144,7 +144,7 @@
 		 * @returns {void}
 		 */
 		function addEndpoint(service, name, url, configuration) {
-			service[name] = function(properties, parameters, data) {
+			service.prototype[name] = function(properties, parameters, data) {
 				properties = properties || {};
 				parameters = parameters || {};
 				data = data || {};
