@@ -243,7 +243,7 @@
 				var key;
 				if (cachedPromises.hasOwnProperty(schemaObject)) {
 					for (key in cachedPromises[schemaObject]) {
-						if (key.indexOf(action) === 0) {
+						if (key.indexOf(name) === 0) {
 							delete cachedPromises[schemaObject][key];
 							return true;
 						}
