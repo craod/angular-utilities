@@ -90,20 +90,37 @@
 	'use strict';
 
 	/**
-	 * @ngdoc factory
-	 * @name CrudServiceFactory
+	 * @ngdoc service
+	 * @name Api
 	 * @description
-	 * Factory for creating CrudServices
+	 * Service that contains the endpoints which communicate with the server
 	 */
-	function CrudService($q, $http) {
+	function Api(Settings, $q, $http) {
+		var loadingPromise,
+			cachedPromises = {};
+		var service = {
+			services: {},
+			load: function () {
+				if (!loadingPromise) {
+					var deferred = $q.defer(),
+						originalPromise = $http({method: 'get', url: Settings.get('api.url') + 'schema/endpoints'});
+					originalPromise.then(function (response) {
+						addSchemaEndpoints(response.data);
+						deferred.resolve();
+					}, deferred.reject);
+					loadingPromise = deferred.promise;
+				}
+				return loadingPromise;
+			}
+		};
 
 		/**
 		 * @ngdoc method
-		 * @name CrudService#injectSortingFromProperties
-		 * @methodOf CrudService
+		 * @name Api#injectSortingFromProperties
+		 * @methodOf Api
 		 * @access private
 		 * @description
-		 * Inject the variables required for sorting into the request array from the properties array passed by the user to the endpoint
+		 * Inject the variables required for sortable into the request array from the properties array passed by the user to the endpoint
 		 *
 		 * @param {Object} request
 		 * @param {Object} properties
@@ -120,8 +137,8 @@
 
 		/**
 		 * @ngdoc method
-		 * @name CrudService#injectPaginationFromProperties
-		 * @methodOf CrudService
+		 * @name Api#injectPaginationFromProperties
+		 * @methodOf Api
 		 * @access private
 		 * @description
 		 * Inject the variables required for pagination into the request array from the properties array passed by the user to the endpoint
@@ -141,8 +158,8 @@
 
 		/**
 		 * @ngdoc method
-		 * @name CrudService#injectFiltersFromProperties
-		 * @methodOf CrudService
+		 * @name Api#injectFiltersFromProperties
+		 * @methodOf Api
 		 * @access private
 		 * @description
 		 * Inject the variables required for adding filters into the request array from the properties array passed by the user to the endpoint
@@ -163,28 +180,37 @@
 
 		/**
 		 * @ngdoc method
-		 * @name CrudService#parseUrlWithParameters
-		 * @methodOf CrudService
+		 * @name Api#parseUrlWithParameters
+		 * @methodOf Api
 		 * @access private
 		 * @description
-		 * Given an associative array with parameters passed by the user, parse the url for required variables and add them if they exist in the parameters
+		 * Given an associative array with parameters passed by the user, parse the url for required variables and add them if they exist in the parameters. Remove them
+		 * from the parameters thereafter
 		 *
 		 * @param {string} url
 		 * @param {Object} parameters
 		 * @returns {string}
 		 */
 		function parseUrlWithParameters(url, parameters) {
-			var name;
+			var name,
+				pattern,
+				apiUrl = document.createElement('a');
 			for (name in parameters) {
-				url = url.replace(new RegExp('\:' + name, 'g'), parameters[name]);
+				pattern = new RegExp('\:' + name, 'g');
+				if (url.match(pattern)) {
+					url = url.replace(pattern, parameters[name]);
+					delete parameters[name];
+				}
 			}
-			return url;
+
+			apiUrl.href = Settings.get('api.url');
+			return apiUrl.origin + url;
 		}
 
 		/**
 		 * @ngdoc method
-		 * @name CrudService#createCacheKey
-		 * @methodOf CrudService
+		 * @name Api#createCacheKey
+		 * @methodOf Api
 		 * @access private
 		 * @description
 		 * Create a unique cache key for the given endpoint name, using any number of name-value pairs passed as additional parameters to this function
@@ -207,17 +233,17 @@
 
 		/**
 		 * @ngdoc method
-		 * @name CrudService#addEndpoint
-		 * @methodOf CrudService
+		 * @name Api#addEndpoint
+		 * @methodOf Api
 		 * @access private
 		 * @description
-		 * Add an endpoint function to the given service with the given name, url and using the configuration provided. The following are the configuration keys that
+		 * Add an endpoint function to the given schema object with the given name, url and using the configuration provided. The following are the configuration keys that
 		 * are understood:
 		 *
 		 * - method: The method to use to communicate with the server (get)
-		 * - pagination: Whether the endpoint allows for automatic pagination (undefined, falsy)
-		 * - sorting: Whether the endpoint allows for automatic sorting (undefined, falsy)
-		 * - filtering: Whether the endpoint allows for automatic filtering (undefined, falsy)
+		 * - paginatable: Whether the endpoint allows for automatic paginating (undefined, falsy)
+		 * - sortable: Whether the endpoint allows for automatic sorting (undefined, falsy)
+		 * - filterable: Whether the endpoint allows for automatic filtering (undefined, falsy)
 		 * - cachable: Whether the endpoint may re-use the promise in order to provide a cache to prevent additional server calls (undefined, falsy)
 		 *
 		 * The result of this function is that the service will have a public method added with the requested name, of signature
@@ -225,38 +251,41 @@
 		 * parameters (object) - Request data
 		 * data (object) - POST data
 		 *
-		 * @param {AbstractCrudService} service
+		 * @param {string} schemaObject
 		 * @param {string} name
-		 * @param {string} url
 		 * @param {Object} configuration
 		 * @returns {void}
 		 */
-		function addEndpoint(service, name, url, configuration) {
-			service[name] = function(properties, parameters, data) {
+		function addEndpoint(schemaObject, name, configuration) {
+			service.services[schemaObject][name] = function(parameters, properties) {
 				properties = properties || {};
 				parameters = parameters || {};
-				data = data || {};
-				var cacheKey, method, request = {}, force = properties.force, translatedUrl;
+
+				var cacheKey,
+					method,
+					request = {},
+					force = properties.force,
+					translatedUrl;
 
 				method = (configuration.method) ? configuration.method : 'get';
-				if (configuration.pagination) {
+				if (configuration.paginatable) {
 					injectPaginationFromProperties(request, properties);
 				}
-				if (configuration.sorting) {
+				if (configuration.sortable) {
 					injectSortingFromProperties(request, properties);
 				}
-				if (configuration.filtering && properties.filters) {
+				if (configuration.filterable && properties.filters) {
 					injectFiltersFromProperties(request, properties);
 				}
 
-				cacheKey = createCacheKey(name, request, data, parameters);
-				translatedUrl = parseUrlWithParameters(url, parameters);
-				if (!configuration.cachable || !service.cachedPromises[cacheKey] || force) {
-					var originalPromise = $http({method: method, url: translatedUrl, params: request, data: data});
+				cacheKey = createCacheKey(name, request, parameters);
+				translatedUrl = parseUrlWithParameters(configuration.route, parameters);
+				if (!cachedPromises[schemaObject] || !cachedPromises[schemaObject][cacheKey] || !configuration.cachable || force) {
+					var originalPromise = $http({method: method, url: translatedUrl, params: request, data: parameters});
 					var deferred = $q.defer();
 					originalPromise.then(function (response) {
 						var responseObject = {};
-						if (configuration.pagination) {
+						if (configuration.paginatable) {
 							responseObject = {
 								items: response.data.items,
 								pagination: {
@@ -270,560 +299,54 @@
 						}
 						deferred.resolve(responseObject);
 					}, deferred.reject);
-					service.cachedPromises[cacheKey] = deferred.promise;
+					if (!cachedPromises[schemaObject]) {
+						cachedPromises[schemaObject] = {};
+					}
+					cachedPromises[schemaObject][cacheKey] = deferred.promise;
 				}
-				return service.cachedPromises[cacheKey];
+				return cachedPromises[schemaObject][cacheKey];
 			};
-		}
 
-		/**
-		 * @ngdoc service
-		 * @name AbstractCrudService
-		 * @param {Object} endpoints
-		 * @description
-		 * CRUD service that contains the given endpoints. Look at the addEndpoint function to understand the parameters expected for each endpoint. The
-		 * endpoints array expects an associative array of keys and values with the keys being the endpoint names and the values being the individual endpoint
-		 * configurations
-		 */
-		function AbstractCrudService(endpoints) {
-			var self = this, name, endpoint;
-
-			/**
-			 * @ngdoc property
-			 * @name AbstractCrudService#cachedPromises
-			 * @propertyOf AbstractCrudService
-			 * @description
-			 * Clear all promise caches
-			 *
-			 * @type {Object}
-			 */
-			self.cachedPromises = {};
-
-			/**
-			 *
-			 * @ngdoc method
-			 * @name AbstractCrudService#clearCache
-			 * @methodOf AbstractCrudService
-			 * @description
-			 * Clear the cache for the specific endpoint
-			 *
-			 * @param {string} endpoint
-			 * @returns {void}
-			 */
-			self.clearCache = function (endpoint) {
+			service.services[schemaObject][name].clearCache = function () {
 				var key;
-				for (key in self.cachedPromises) {
-					if (key.indexOf(endpoint) === 0) {
-						delete self.cachedPromises[key];
+				if (cachedPromises.hasOwnProperty(schemaObject)) {
+					for (key in cachedPromises[schemaObject]) {
+						if (key.indexOf(action) === 0) {
+							delete cachedPromises[schemaObject][key];
+							return true;
+						}
 					}
 				}
-			};
-
-			/**
-			 *
-			 * @ngdoc method
-			 * @name AbstractCrudService#clearCaches
-			 * @methodOf AbstractCrudService
-			 * @description
-			 * Clear all promise caches
-			 *
-			 * @returns {void}
-			 */
-			self.clearCaches = function () {
-				self.cachedPromises = {};
-			};
-
-			for (name in endpoints) {
-				endpoint = endpoints[name];
-				addEndpoint(self, name, endpoint.url, endpoint);
+				return false;
 			}
 		}
 
-		return AbstractCrudService;
+		function addSchemaEndpoints (schemaEndpoints) {
+			var schemaObject, action, configuration;
+			for (schemaObject in schemaEndpoints) {
+				service.services[schemaObject] = {};
+				for (action in schemaEndpoints[schemaObject]) {
+					configuration = schemaEndpoints[schemaObject][action];
+					addEndpoint(schemaObject, action, configuration);
+				}
+				service.services[schemaObject].clearCaches = function () {
+					cachedPromises[schemaObject] = {};
+				}
+			}
+		}
+
+		return service;
 	}
 
-	CrudService.$inject = [
+	Api.$inject = [
+		'Settings',
 		'$q',
 		'$http'
 	];
 
 	angular
 		.module('angular-utilities')
-		.factory('CrudService', CrudService);
-})();
-(function () {
-	'use strict';
-
-	/**
-	 * @ngdoc service
-	 * @name CategoryService
-	 * @description
-	 * Service that provides CRUD functions for handling Craod categories
-	 */
-	function CategoryService (Settings, CrudService) {
-		var self = this;
-
-		var endpoints = {
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#count
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains the category count
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			count: {
-				url: Settings.get('api.url') + 'category/count',
-				cachable: true,
-				filtering: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#getAll
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains all the categories matching the sorting, filtering and pagination settings
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			getAll: {
-				url: Settings.get('api.url') + 'category',
-				cachable: true,
-				pagination: true,
-				filtering: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#getParents
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains all the categories matching the sorting, filtering and pagination settings that are parents of the requested
-			 * category
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			getParents: {
-				url: Settings.get('api.url') + 'category/parents/:guid',
-				cachable: true,
-				pagination: true,
-				filtering: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#getChildren
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains all the categories matching the sorting, filtering and pagination settings that are children of the requested
-			 * category
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			getChildren: {
-				url: Settings.get('api.url') + 'category/children/:guid',
-				cachable: true,
-				pagination: true,
-				filtering: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#getParents
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains all the categories matching the sorting, filtering and pagination settings that are parents of the requested
-			 * object
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			getCategoriesInObject: {
-				url: Settings.get('api.url') + 'category/object/:guid',
-				cachable: true,
-				pagination: true,
-				filtering: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#get
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains the category requested by its guid
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			get: {
-				url: Settings.get('api.url') + 'category/:guid',
-				cachable: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#create
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains the category as created using the properties in the data parameter
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			create: {
-				url: Settings.get('api.url') + 'category',
-				method: 'post'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#update
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains the category as updated using the properties in the data parameter and the guid in the parameters
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			update: {
-				url: Settings.get('api.url') + 'category/:guid',
-				method: 'put'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#delete
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the category identified by the guid was deleted
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			delete: {
-				url: Settings.get('api.url') + 'category/:guid',
-				method: 'delete'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#activate
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the category identified by the guid was activated
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			activate: {
-				url: Settings.get('api.url') + 'category/activate/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#deactivate
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the category identified by the guid was deactivated
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			deactivate: {
-				url: Settings.get('api.url') + 'category/deactivate/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#search
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains a an array with categories which match the searchTerms string provided in the data parameter
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			search: {
-				url: Settings.get('api.url') + 'category/search',
-				method: 'post',
-				cachable: true,
-				pagination: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#search
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains a an array with categories which match the query string provided in the query parameter
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			autocomplete: {
-				url: Settings.get('api.url') + 'category/autocomplete/:query',
-				method: 'get',
-				cachable: true,
-				pagination: true,
-				sorting: false
-			}
-		};
-
-		angular.extend(self, new CrudService(endpoints));
-	}
-
-	CategoryService.$inject = [
-		'Settings',
-		'CrudService'
-	];
-
-	angular
-		.module('angular-utilities')
-		.service('CategoryService', CategoryService);
-})();
-(function () {
-	'use strict';
-
-	/**
-	 * @ngdoc service
-	 * @name ObjectService
-	 * @description
-	 * Service that provides CRUD functions for handling Craod objects
-	 */
-	function ObjectService (Settings, CrudService) {
-		var self = this;
-
-		var endpoints = {
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#count
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains the object count
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			count: {
-				url: Settings.get('api.url') + 'object/count',
-				cachable: true,
-				filtering: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#getAll
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains all the objects matching the sorting, filtering and pagination settings
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			getAll: {
-				url: Settings.get('api.url') + 'object',
-				cachable: true,
-				pagination: true,
-				filtering: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name CategoryService#getParents
-			 * @methodOf CategoryService
-			 * @description
-			 * Returns a promise whose response contains all the objects matching the sorting, filtering and pagination settings that are children of the requested
-			 * category
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			getObjectsInCategory: {
-				url: Settings.get('api.url') + 'object/category/:guid',
-				cachable: true,
-				pagination: true,
-				filtering: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#get
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains the object requested by its guid
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			get: {
-				url: Settings.get('api.url') + 'object/:guid',
-				cachable: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#create
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains the object as created using the properties in the data parameter
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			create: {
-				url: Settings.get('api.url') + 'object',
-				method: 'post'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#update
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains the object as updated using the properties in the data parameter and the guid in the parameters
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			update: {
-				url: Settings.get('api.url') + 'object/:guid',
-				method: 'put'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#delete
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the object identified by the guid was deleted
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			delete: {
-				url: Settings.get('api.url') + 'object/:guid',
-				method: 'delete'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#activate
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the object identified by the guid was activated
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			activate: {
-				url: Settings.get('api.url') + 'object/activate/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#deactivate
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the object identified by the guid was deactivated
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			deactivate: {
-				url: Settings.get('api.url') + 'object/deactivate/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name ObjectService#search
-			 * @methodOf ObjectService
-			 * @description
-			 * Returns a promise whose response contains a an array with objects which match the searchTerms string provided in the data parameter
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			search: {
-				url: Settings.get('api.url') + 'object/search',
-				method: 'post',
-				cachable: true,
-				pagination: true,
-				sorting: true
-			}
-		};
-
-		angular.extend(self, new CrudService(endpoints));
-	}
-
-	ObjectService.$inject = [
-		'Settings',
-		'CrudService'
-	];
-
-	angular
-		.module('angular-utilities')
-		.service('ObjectService', ObjectService);
+		.service('Api', Api);
 })();
 (function () {
 	'use strict';
@@ -897,7 +420,7 @@
 			 * @description
 			 * Load the settings from the endpoint specified in the provider
 			 *
-			 * @returns {Promise}
+			 * @returns {promise}
 			 */
 			service.load = function () {
 				var promise = $http.get(provider.endpoint);
@@ -977,306 +500,6 @@
 	angular
 		.module('angular-utilities')
 		.provider('Settings', SettingsProvider);
-})();
-(function () {
-	'use strict';
-
-	/**
-	 * @ngdoc service
-	 * @name UserService
-	 * @description
-	 * Service that provides CRUD functions for handling Craod users
-	 */
-	function UserService (Settings, CrudService) {
-		var self = this;
-
-		var endpoints = {
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#count
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains the user count
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			count: {
-				url: Settings.get('api.url') + 'user/count',
-				cachable: true,
-				filtering: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#getAll
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains all the users matching the sorting, filtering and pagination settings
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			getAll: {
-				url: Settings.get('api.url') + 'user',
-				cachable: true,
-				pagination: true,
-				filtering: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#get
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains the user requested by its guid
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			get: {
-				url: Settings.get('api.url') + 'user/:guid',
-				cachable: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#create
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains the user as created using the properties in the data parameter
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			create: {
-				url: Settings.get('api.url') + 'user',
-				method: 'post'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#update
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains the user as updated using the properties in the data parameter and the guid in the parameters
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			update: {
-				url: Settings.get('api.url') + 'user/:guid',
-				method: 'put'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#delete
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the user identified by the guid was deleted
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			delete: {
-				url: Settings.get('api.url') + 'user/:guid',
-				method: 'delete'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#checkEmailAvailability
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the email requested is available for using
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			checkEmailAvailability: {
-				url: Settings.get('api.url') + 'user/available/:email',
-				cachable: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#changePassword
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains the result of trying to change the user's password
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			changePassword: {
-				url: Settings.get('api.url') + 'user/password/change/:guid',
-				method: 'post'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#resetPassword
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains the result of trying to reset the user's password to an automatically generated one
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			resetPassword: {
-				url: Settings.get('api.url') + 'user/password/reset/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#activate
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the user identified by the guid was activated
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			activate: {
-				url: Settings.get('api.url') + 'user/activate/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#deactivate
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the user identified by the guid was deactivated
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			deactivate: {
-				url: Settings.get('api.url') + 'user/deactivate/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#logOut
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is true if the user identified by the guid was logged out
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			logOut: {
-				url: Settings.get('api.url') + 'user/logout/:guid'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#search
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains an array with users which match the searchTerms string provided in the data parameter
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			search: {
-				url: Settings.get('api.url') + 'user/search',
-				method: 'post',
-				cachable: true,
-				pagination: true,
-				sorting: true
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#uploadProfilePicture
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains an associative array with the new profile picture information
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			uploadProfilePicture: {
-				url: Settings.get('api.url') + 'user/image/:guid',
-				method: 'post'
-			},
-
-			/**
-			 * @ngdoc method
-			 * @name UserService#uploadProfilePicture
-			 * @methodOf UserService
-			 * @description
-			 * Returns a promise whose response contains a boolean which is TRUE if the image was deleted
-			 *
-			 * @param {Object} properties
-			 * @param {Object} parameters
-			 * @param {Object} data
-			 * @returns {Promise}
-			 */
-			deleteProfilePicture: {
-				url: Settings.get('api.url') + 'user/image/:guid',
-				method: 'delete'
-			}
-		};
-
-		/**
-		 * @ngdoc method
-		 * @name UserService#hasRole
-		 * @methodOf UserService
-		 * @description
-		 * Returns true if the roles provided contain the role requested (using binary comparison)
-		 *
-		 * @param {int} roles
-		 * @param {int} role
-		 * @returns {boolean}
-		 */
-		self.hasRole = function (roles, role) {
-			return (roles & role) === role;
-		};
-
-		angular.extend(self, new CrudService(endpoints));
-	}
-
-	UserService.$inject = [
-		'Settings',
-		'CrudService'
-	];
-
-	angular
-		.module('angular-utilities')
-		.service('UserService', UserService);
 })();
 (function () {
 	'use strict';
